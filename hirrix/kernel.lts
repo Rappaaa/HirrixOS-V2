@@ -1,0 +1,82 @@
+
+
+; On définit le type de code sur 16 bits
+; car on a besoin de code en 16 bits
+asm ".code16\n"
+
+; On retourne à la fonction principale de notre kernel
+asm "jmpl $0x0, $kmain\n"
+
+; On definit la hauteur et la largeur de l'écran
+cpp #define MAX_X 320
+cpp #define MAX_Y 200
+
+func void printf( const char* str )
+
+	while *str then
+		asmv "int $0x10" : : "a" (0x0e00 | *str), "b"(0x0007)
+	end
+
+	cpp ++str;
+end
+
+func void kmain()
+	call printf("HirrixOS is booting please wait.")
+	call clearScreen()
+	call initGraphics()
+end
+
+; Méthode pour color les pixels
+
+func void drawPixel( unsigned char color, int x, int y )
+     asm "int $0x10" : : "a"(0x0c00 | color), "c"(x), "d"(y)
+end
+
+; Méthode pour nettoyer l'écran (Écran noir)
+func void clearScreen()
+	asmv "int $0x10" : : "a"(0x03)
+     asmv "int $0x10" : : "a"(0x0013)
+end
+
+void initGraphics() {
+     int i = 0, j = 0;
+     int m = 0;
+     int cnt1 = 0, cnt2 =0;
+     unsigned char color = 10;
+
+     while 1 then
+          if m < (MAX_Y - m) then
+               cpp ++cnt1;
+          end
+          if m < (MAX_X - m - 3) then
+               cpp ++cnt2;
+          end
+
+          if cnt1 != cnt2 then
+               def cnt1  = 0;
+               def cnt2  = 0;
+               def m     = 0;
+               if ++color > 255 then $ def color = 0 $ end
+          }
+
+          j = 0;
+          cpp for(i = m; i < MAX_Y - m; ++i) {
+          	call drawPixel(color, j+m, i)
+          end
+          
+          cpp for(j = m; j < MAX_X - m; ++j) {
+               drawPixel(color, j, i);
+          end
+
+          cpp for(i = MAX_Y - m - 1 ; i >= m; --i) {
+               drawPixel(color, MAX_X - m - 1, i);
+          end
+
+          cpp for(j = MAX_X - m - 1; j >= m; --j) {
+               drawPixel(color, j, m);
+          end
+          def m = m + 6;
+          
+          if ++color > 255 then $ def color = 0 $ end
+     end
+end
